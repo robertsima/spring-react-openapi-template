@@ -5,13 +5,29 @@
 		xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
     https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-	<changeSet id="1.0.0-create-schema" author="robert.sima">
-	    <comment>Creating basic schema</comment>
-	    <sqlFile
-	            path="scripts/create-schema.sql"
-	            relativeToChangelogFile="true"
-	            splitStatements="true"
-	            stripComments="true" />
+	<!--
+		Changesets are written in Liquibase XML (not raw SQL) so the same changelog runs on both
+		Oracle and SQL Server: Liquibase emits IDENTITY / GENERATED AS IDENTITY, VARCHAR2 / VARCHAR,
+		TIMESTAMP / DATETIME2 etc. for each. Use dbms="oracle" / dbms="mssql" on a changeSet for
+		vendor-specific changes.
+	-->
+
+	<changeSet id="1.0.0-create-users" author="robert.sima">
+		<comment>Creating basic schema</comment>
+		<createTable tableName="users">
+			<column name="id" type="BIGINT" autoIncrement="true">
+				<constraints primaryKey="true" primaryKeyName="pk_users" nullable="false"/>
+			</column>
+			<column name="name" type="VARCHAR(255)">
+				<constraints nullable="false"/>
+			</column>
+			<column name="email" type="VARCHAR(255)">
+				<constraints unique="true" uniqueConstraintName="uk_users_email"/>
+			</column>
+			<column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+		</createTable>
 	</changeSet>
-	
+
+	<!-- Add other tables here etc -->
+
 </databaseChangeLog>

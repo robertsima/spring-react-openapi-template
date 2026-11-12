@@ -1,27 +1,58 @@
 # Rendered at container start by the nginx image's envsubst step (/etc/nginx/templates -> /etc/nginx/conf.d).
-# Only variables set in the environment are substituted, so nginx's own $vars are left alone.
-#   BACKEND_URL     where the backend service is reachable from this container, e.g. http://spring-app-pod:8080
-#   OIDC_AUTHORITY  Keycloak realm URL as the *browser* sees it
-#   OIDC_CLIENT_ID  public Keycloak client for this UI
+# Only BACKEND_URL and APP_ENVIRONMENT are substituted (NGINX_ENVSUBST_FILTER in the Dockerfile),
+# so nginx's own $variables are left alone.
+#   BACKEND_URL      where the backend service is reachable from this container, e.g. http://spring-app-pod:8080
+#   APP_ENVIRONMENT  goes into every log line (service.environment)
+
+# ---- Structured JSON access log, ECS field names (same schema as the backend's logging.structured.format=ecs)
+log_format ecs_json escape=json
+  '{'
+    '"@timestamp":"$time_iso8601",'
+    '"log.level":"info",'
+    '"log.logger":"nginx.access",'
+    '"ecs.version":"8.11",'
+    '"service.name":"your_repo_name-frontend",'
+    '"service.environment":"${APP_ENVIRONMENT}",'
+    '"event.dataset":"nginx.access",'
+    '"message":"$request_method $request_uri $status",'
+    '"http.request.id":"$request_id",'
+    '"http.request.method":"$request_method",'
+    '"http.request.referrer":"$http_referer",'
+    '"http.response.status_code":$status,'
+    '"http.response.body.bytes":$body_bytes_sent,'
+    '"url.original":"$request_uri",'
+    '"client.ip":"$remote_addr",'
+    '"user_agent.original":"$http_user_agent",'
+    '"nginx.request_time_s":$request_time,'
+    '"nginx.upstream_response_time_s":"$upstream_response_time"'
+  '}';
 
 server {
     listen 8080;
     server_name _;
     root /usr/share/nginx/html;
 
+    access_log /dev/stdout ecs_json;   # replaces the image's plain-text access log for this server
+
     # Runtime config for the SPA (see src/config.ts)
     location = /config.json {
         default_type application/json;
         add_header Cache-Control "no-store";
-        return 200 '{"apiBasePath":"/api","websocketPath":"/websockets","oidc":{"authority":"${OIDC_AUTHORITY}","clientId":"${OIDC_CLIENT_ID}"}}';
+        return 200 '{"apiBasePath":"/api","websocketPath":"/websockets"}';
     }
 
-    # REST API -> backend (the trailing slash strips the /api prefix)
+    # REST API -> backend (the trailing slash strips the /api prefix).
+    # Windows SSO: the browser's "Authorization: Negotiate ..." request header and the backend's
+    # "WWW-Authenticate: Negotiate" challenge pass straight through. Kerberos tokens are per request, so this
+    # works through a proxy; raw NTLM (bound to one TCP connection) does not, which is why the backend
+    # only offers Negotiate. The Kerberos SPN must be HTTP/<the host name the browser uses for THIS server>.
     location /api/ {
         proxy_pass ${BACKEND_URL}/;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Prefix /api;
+        proxy_set_header X-Request-ID $request_id;   # correlate frontend + backend log lines
     }
 
     # STOMP / SockJS -> backend, with WebSocket upgrade
@@ -31,6 +62,7 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
         proxy_set_header Host $host;
+        proxy_set_header X-Request-ID $request_id;
         proxy_read_timeout 1h;
     }
 
@@ -44,5 +76,18 @@ server {
     location / {
         add_header Cache-Control "no-cache";
         try_files $uri /index.html;
+    }
+}
+
+# ---- Internal metrics listener for nginx-prometheus-exporter (sidecar in the same pod). Not published.
+server {
+    listen 8081;
+    access_log off;
+
+    location = /stub_status {
+        stub_status;
+        allow 127.0.0.1;
+        allow ::1;
+        deny all;
     }
 }

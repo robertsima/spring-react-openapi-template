@@ -4,39 +4,32 @@ import App from './App'
 import './index.css'
 import {BrowserRouter} from "react-router-dom";
 import {ThemeProvider} from "@mui/material/styles";
-import {AuthProvider} from "react-oidc-context";
-import {WebStorageStateStore} from "oidc-client-ts";
 import {defaultTheme} from "./themes/theme1";
 import {loadConfig} from "./config";
 import {AppContextProvider} from "./services/AppContext";
+import {AuthenticationProvider} from "./services/Authentication/AuthenticationProvider";
+import {logger} from "./utils/logger";
 
 const root = createRoot(document.getElementById('root')!);
+
+window.addEventListener('error', e => logger.error('Uncaught error', e.error));
+window.addEventListener('unhandledrejection', e => logger.error('Unhandled promise rejection', e.reason));
 
 loadConfig()
     .then(config => root.render(
         <StrictMode>
             <BrowserRouter>
                 <ThemeProvider theme={defaultTheme}>
-                    {/* OIDC Authorization Code + PKCE against Keycloak (public client, no secret in the browser) */}
-                    <AuthProvider
-                        authority={config.oidc.authority}
-                        client_id={config.oidc.clientId}
-                        redirect_uri={window.location.origin}
-                        post_logout_redirect_uri={window.location.origin}
-                        userStore={new WebStorageStateStore({store: window.sessionStorage})}
-                        automaticSilentRenew
-                        // strip ?code=&state= from the URL after login
-                        onSigninCallback={() => window.history.replaceState({}, document.title, window.location.pathname)}
-                    >
-                        <AppContextProvider config={config}>
+                    <AppContextProvider config={config}>
+                        <AuthenticationProvider>
                             <App/>
-                        </AppContextProvider>
-                    </AuthProvider>
+                        </AuthenticationProvider>
+                    </AppContextProvider>
                 </ThemeProvider>
             </BrowserRouter>
         </StrictMode>
     ))
     .catch(err => {
-        console.error(err);
+        logger.error('Failed to start', err);
         root.render(<pre>Failed to start: {String(err)}</pre>);
     });

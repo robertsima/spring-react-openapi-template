@@ -1,0 +1,6 @@
+# Windows SSO via Waffle (security/WaffleSecurityConfig.java).
+# Requires a domain-joined WINDOWS host - Waffle uses the Windows SSPI APIs and cannot run in the Linux image.
+# Roles: map AD groups in app.security.role-mappings (application.yml), e.g. "[MYDOMAIN\App-Admins]": ADMIN
+logging:
+  level:
+    waffle: INFO

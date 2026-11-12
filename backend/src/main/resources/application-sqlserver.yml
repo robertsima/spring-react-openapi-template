@@ -1,0 +1,12 @@
+# Microsoft SQL Server (2019+). Driver: com.microsoft.sqlserver:mssql-jdbc
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:sqlserver://localhost:1433;databaseName=appdb;encrypt=true;trustServerCertificate=true}
+    username: ${SPRING_DATASOURCE_USERNAME:appuser}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    hikari:
+      maximum-pool-size: 10
+  # Hibernate picks the dialect from the JDBC metadata; set spring.jpa.database-platform only to override it.
+  # Windows-integrated DB login instead of SQL auth: append ;integratedSecurity=true;authenticationScheme=JavaKerberos
+  # to the URL and drop username/password (needs a Kerberos ticket for the service account).

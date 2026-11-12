@@ -1,0 +1,39 @@
+# Alerting rules (placeholders - tune thresholds, add routing in Alertmanager).
+groups:
+  - name: your_repo_name
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }} is down"
+
+      - alert: BackendHigh5xxRate
+        expr: |
+          sum(rate(http_server_requests_seconds_count{job="backend", status=~"5.."}[5m]))
+            / sum(rate(http_server_requests_seconds_count{job="backend"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backend 5xx rate above 5%"
+
+      - alert: BackendSlowRequests
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job="backend"}[5m]))) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backend p95 latency above 1s"
+
+      - alert: BackendHeapHigh
+        expr: |
+          sum(jvm_memory_used_bytes{job="backend", area="heap"}) / sum(jvm_memory_max_bytes{job="backend", area="heap"}) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backend heap usage above 90%"

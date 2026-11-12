@@ -22,9 +22,12 @@
         <java.version>25</java.version>
         <spring-cloud.version>2025.1.1</spring-cloud.version>
         <testcontainers.version>1.21.4</testcontainers.version>
+        <waffle.version>3.6.0</waffle.version>
         <mapstruct.version>1.6.3</mapstruct.version>
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
         <!-- Shared contract lives at the repo root so the frontend can generate from the same file -->
+        <!-- Database used by integration tests: sqlserver (default) or oracle -->
+        <it.db>sqlserver</it.db>
         <openapi.spec>${project.basedir}/../openapi/openapi.yaml</openapi.spec>
     </properties>
 
@@ -65,9 +68,36 @@
             <artifactId>spring-boot-starter-restclient</artifactId>
         </dependency>
 
+        <!-- Windows SSO (SPNEGO/Negotiate). Exactly one auth profile is active at runtime:
+             "waffle"   -> Waffle, uses the Windows SSPI APIs, backend must run on a Windows host
+             "kerberos" -> Spring Security Kerberos, keytab-based, runs anywhere (Linux containers)
+             neither    -> fail-closed: every protected endpoint returns 401 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security-oauth2-resource-server</artifactId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.waffle</groupId>
+            <artifactId>waffle-spring-security7</artifactId>
+            <version>${waffle.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-kerberos-web</artifactId>
+        </dependency>
+
+        <!-- Monitoring: /actuator/prometheus on the management port -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+            <scope>runtime</scope>
         </dependency>
 
         <dependency>
@@ -116,16 +146,29 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Database drivers: pick at runtime with the "oracle" or "sqlserver" profile -->
         <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
+            <groupId>com.oracle.database.jdbc</groupId>
+            <artifactId>ojdbc11</artifactId>
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Testcontainers for integration tests -->
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Testcontainers for integration tests (-Dit.db=sqlserver|oracle) -->
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>postgresql</artifactId>
+            <artifactId>mssqlserver</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>oracle-free</artifactId>
             <scope>test</scope>
         </dependency>
 
@@ -164,7 +207,7 @@
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security-oauth2-resource-server-test</artifactId>
+            <artifactId>spring-boot-starter-security-test</artifactId>
             <scope>test</scope>
         </dependency>
 
@@ -261,6 +304,26 @@
                     <arg>-Amapstruct.defaultComponentModel=spring</arg>
                 </compilerArgs>
             </configuration>
+        </plugin>
+
+        <!-- Unit tests (src/test/java/unit, *Test) run in `test`; integration tests
+             (src/test/java/integration, *IT) run in `integration-test`/`verify` via failsafe. -->
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <configuration>
+                <systemPropertyVariables>
+                    <it.db>${it.db}</it.db>
+                </systemPropertyVariables>
+            </configuration>
+            <executions>
+                <execution>
+                    <goals>
+                        <goal>integration-test</goal>
+                        <goal>verify</goal>
+                    </goals>
+                </execution>
+            </executions>
         </plugin>
 
         <plugin>

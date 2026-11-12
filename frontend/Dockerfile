@@ -24,9 +24,10 @@ FROM docker.io/nginxinc/nginx-unprivileged:1.27-alpine
 COPY frontend/nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Defaults for local use; override per environment (see deploy/podman-kube.yaml)
+# Defaults for local use; override per environment (see deploy/*.yaml)
 ENV BACKEND_URL=http://localhost:8080 \
-    OIDC_AUTHORITY=http://localhost:8180/realms/your-realm \
-    OIDC_CLIENT_ID=your_repo_name-frontend
+    APP_ENVIRONMENT=local \
+    NGINX_ENVSUBST_FILTER="^(BACKEND_URL|APP_ENVIRONMENT)$"
 
-EXPOSE 8080
+# 8080 = app, 8081 = stub_status for the Prometheus exporter (internal)
+EXPOSE 8080 8081

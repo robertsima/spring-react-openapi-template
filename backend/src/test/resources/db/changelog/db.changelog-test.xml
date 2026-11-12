@@ -3,14 +3,18 @@
 		xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
 		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 		xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
-			http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+    https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
 	<!-- Include main changelog first -->
-		<include file="classpath:db/changelog/db.changelog.xml" />	
+	<include file="classpath:db/changelog/db.changelog.xml" />
 
-	<!-- Test-only seed data -->
+	<!-- Test-only seed data (vendor-neutral inserts) -->
 	<changeSet id="1.0.1-seed-test-data" author="robert.sima">
 		<comment>Inserting seed test data (TEST ONLY)</comment>
-		<sqlFile path="scripts/seed-data.sql" relativeToChangelogFile="true" splitStatements="true" stripComments="true" />
+		<insert tableName="users"><column name="name" value="Alice Johnson"/><column name="email" value="alice@example.com"/></insert>
+		<insert tableName="users"><column name="name" value="Bob Smith"/><column name="email" value="bob@example.com"/></insert>
+		<insert tableName="users"><column name="name" value="Charlie Brown"/><column name="email" value="charlie@example.com"/></insert>
+		<insert tableName="users"><column name="name" value="Diana Prince"/><column name="email" value="diana@example.com"/></insert>
+		<insert tableName="users"><column name="name" value="Eve Williams"/><column name="email" value="eve@example.com"/></insert>
 	</changeSet>
 </databaseChangeLog>

@@ -21,7 +21,12 @@ WORKDIR /app
 
 COPY --from=build /app/backend/target/*.jar app.jar
 
-EXPOSE 8080
+# 8080 = API, 8081 = actuator (health probes + /actuator/prometheus), not routed through the frontend proxy
+EXPOSE 8080 8081
+
+# Pick the database and SSO implementation at runtime, e.g. SPRING_PROFILES_ACTIVE=sqlserver,kerberos
+# (Waffle needs Windows SSPI and won't work in this Linux image - run the jar on a Windows host for "waffle")
+ENV SPRING_PROFILES_ACTIVE=sqlserver,kerberos
 
 # Lets the JVM size its heap from the container memory limit set in deploy/podman-kube.yaml
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

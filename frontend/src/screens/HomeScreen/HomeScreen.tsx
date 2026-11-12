@@ -2,17 +2,17 @@ import {useNavigate} from "react-router";
 import {Alert, Button, Grid2 as Grid, Paper, TextField, Typography} from "@mui/material";
 import './HomeScreen.css';
 import {FormEvent, useState} from "react";
-import {useAuth} from "react-oidc-context";
+import {useAuth} from "../../services/Authentication/AuthenticationProvider";
 import {ROUTE_ADMIN} from "../../constants/routes";
 import {doesUserHaveAnyOneOfTheseRoles, getDisplayName} from "../../utils/auth/auth";
 import {ROLE_ADMIN} from "../../constants/roles";
-import {GoSignOut} from "react-icons/go";
 import {GrUserAdmin} from "react-icons/gr";
 import {useAppContext} from "../../services/AppContext";
-import {UserDTO} from "../../generated/api";
+import {ResponseError, UserDTO} from "../../generated/api";
+import {logger} from "../../utils/logger";
 
 const HomeScreen = () => {
-    const auth = useAuth();
+    const {user} = useAuth();
     const {apis} = useAppContext();
     const navigate = useNavigate();
 
@@ -26,7 +26,10 @@ const HomeScreen = () => {
         setError(undefined);
         apis.usersApi.getUsersByName({name})
             .then(setUsers)
-            .catch(err => setError(`Request failed: ${err?.response?.status ?? err}`));
+            .catch((err: unknown) => {
+                logger.error('User search failed', err);
+                setError(`Request failed: ${err instanceof ResponseError ? err.response.status : String(err)}`);
+            });
     }
 
     return <Grid container direction="column" justifyContent="center" alignItems="center" spacing={2}>
@@ -36,7 +39,7 @@ const HomeScreen = () => {
 
         <div className="circle-right"/>
 
-        <Typography variant="h5" color="white">Signed in as {getDisplayName(auth.user)}</Typography>
+        <Typography variant="h5" color="white">Signed in as {getDisplayName(user)}</Typography>
 
         <Paper elevation={2} sx={{p: 3, minWidth: 360}}>
             <form onSubmit={onSearch}>
@@ -52,7 +55,7 @@ const HomeScreen = () => {
             </Typography>}
         </Paper>
 
-        {doesUserHaveAnyOneOfTheseRoles(auth.user, [ROLE_ADMIN]) &&
+        {doesUserHaveAnyOneOfTheseRoles(user, [ROLE_ADMIN]) &&
             <Grid container justifyContent="center" alignItems={"stretch"}>
                 <Button variant={"contained"}
                         onClick={() => navigate(ROUTE_ADMIN)}
@@ -61,13 +64,8 @@ const HomeScreen = () => {
                 >Admin Page</Button>
             </Grid>}
 
-        <Grid container justifyContent="center" alignItems={"stretch"}>
-            <Button variant={"contained"}
-                    onClick={() => void auth.signoutRedirect()}
-                    startIcon={<GoSignOut/>}
-                    sx={{width: '100%', marginRight: '32px', borderRadius: 2}}
-            >Sign Out</Button>
-        </Grid>
+        {/* No sign-out with Windows SSO: the session is the user's Windows logon. */}
+        <Typography variant="caption" color="grey.500">{user?.username} - {user?.roles.join(', ')}</Typography>
     </Grid>
 }
 

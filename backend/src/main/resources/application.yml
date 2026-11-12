@@ -1,53 +1,73 @@
+# Activate one DB profile and one auth profile, e.g.
+#   SPRING_PROFILES_ACTIVE=sqlserver,kerberos   (Linux container)
+#   SPRING_PROFILES_ACTIVE=oracle,waffle        (Windows host)
+# DB:   application-oracle.yml | application-sqlserver.yml
+# Auth: application-waffle.yml | application-kerberos.yml  (neither = fail-closed, every protected call is 401)
+
 spring:
   application:
     name: your_repo_name
   liquibase:
     change-log: classpath:db/changelog/db.changelog.xml
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uris:
-            - https://<your-keycloak-domain>/realms/your-realm
-            - https://<other-domain>/realms/other-realm
+  jpa:
+    hibernate:
+      ddl-auto: none        # Liquibase owns the schema (switch to "validate" once your entities settle)
+    open-in-view: false
+  # Connection details come from env vars - never commit real credentials:
+  #   SPRING_DATASOURCE_URL / SPRING_DATASOURCE_USERNAME / SPRING_DATASOURCE_PASSWORD
+  # Tests using Testcontainers override spring.datasource.* via DynamicPropertySource.
 
 server:
   port: 8080
-  
+  # behind the frontend's nginx: trust X-Forwarded-* for scheme/host
+  forward-headers-strategy: framework
+
 springdoc:
   enable-data-rest: false
   packages-to-scan: com.example_project_name.controller
-# issuer-uris can be omitted if keycloak.auth-server-url and keycloak.realm are configured.
 
-# Optional database configuration (Postgres) - uncomment and set real values for runtime use.
-# Use environment variables to override defaults in CI/production.
-#
-#spring:
-#  datasource:
-#    url: ${DB_URL:jdbc:postgresql://localhost:5432/myapp}
-#    username: ${DB_USER:postgres}
-#    password: ${DB_PASSWORD:postgres}
-#    driver-class-name: org.postgresql.Driver
-#    hikari:
-#      maximum-pool-size: 10
-#
-#  jpa:
-#    hibernate:
-#      ddl-auto: update    # use 'validate' or remove for production
-#    show-sql: true
-#    properties:
-#      hibernate:
-#        dialect: org.hibernate.dialect.PostgreSQLDialect
-#
-#
-# Notes:
-# - Tests using Testcontainers will override `spring.datasource.*` via DynamicPropertySource.
-# - Do not commit real credentials; use env vars or secret management.
+# ---------------------------------------------------------------- monitoring
+# Actuator on its own port so it is never reachable through the public proxy.
+# Prometheus scrapes http://<backend>:8081/actuator/prometheus (see monitoring/prometheus.yml).
+management:
+  server:
+    port: 8081
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true          # /actuator/health/liveness and /readiness for k8s probes
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
 
-keycloak:
-  realm: your-realm
-  auth-server-url: https://<your-keycloak-domain>
+# ---------------------------------------------------------------- logging
+# Structured JSON on stdout in Elastic Common Schema (ECS) - the same field names the frontend's nginx
+# writes (see frontend/nginx/nginx.conf), so both services can share one log index/dashboards.
+logging:
+  structured:
+    format:
+      console: ecs
+    ecs:
+      service:
+        name: ${spring.application.name}
+        environment: ${APP_ENVIRONMENT:local}
+  level:
+    root: INFO
+
 app:
+  security:
+    default-role: USER
+    # AD group (waffle) or principal name (both profiles) -> application role.
+    # Keys contain '\' or '@', so keep the "[...]" bracket notation.
+    role-mappings:
+      "[MYDOMAIN\\App-Admins]": ADMIN
   websocket:
     # Origins allowed to open the STOMP/SockJS connection. In the podman setup the frontend's nginx
     # proxies /websockets, so the browser origin is the frontend's host.

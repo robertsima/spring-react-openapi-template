@@ -3,10 +3,10 @@ package integration.com.example_project_name.app;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 
-import integration.com.example_project_name.PostgresBaseIT;
+import integration.com.example_project_name.DatabaseBaseIT;
 
 @AutoConfigureMockMvc
-class MyServiceApplicationIT extends PostgresBaseIT {
+class MyServiceApplicationIT extends DatabaseBaseIT {
 
 	@Test
 	void contextLoads() {

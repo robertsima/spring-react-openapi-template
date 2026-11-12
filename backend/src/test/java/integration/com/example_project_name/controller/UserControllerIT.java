@@ -9,10 +9,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import integration.com.example_project_name.PostgresBaseIT;
+import integration.com.example_project_name.DatabaseBaseIT;
 
 @AutoConfigureMockMvc
-public class UserControllerIT extends PostgresBaseIT {
+public class UserControllerIT extends DatabaseBaseIT {
 
     @Autowired
     private MockMvc mockMvc;

@@ -1,0 +1,191 @@
+# SQL Server stack: database, backend (Spring) and frontend (nginx + React), each in its own pod
+# with its own CPU/memory requests and limits so they can be sized independently.
+#
+#   podman network create app-net                      # once; gives pod-name DNS between pods
+#   podman build -f backend/Dockerfile  -t your_repo_name-backend:latest  .
+#   podman build -f frontend/Dockerfile -t your_repo_name-frontend:latest .
+#   podman play kube --network app-net deploy/podman-kube-sqlserver.yaml
+#   podman play kube --down deploy/podman-kube-sqlserver.yaml             # tear down
+#
+# Frontend: http://localhost:3000   Backend (direct, swagger-ui): http://localhost:8080/swagger-ui.html
+# Monitoring (Prometheus/Grafana): see monitoring/README.md
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sqlserver-pod
+spec:
+  containers:
+    - name: sqlserver
+      image: mcr.microsoft.com/mssql/server:2022-latest
+      ports:
+        - containerPort: 1433
+          hostPort: 1433
+      env:
+        - name: ACCEPT_EULA            # required: you accept the SQL Server EULA
+          value: "Y"
+        - name: MSSQL_PID
+          value: Developer             # licence edition - change for production
+        - name: MSSQL_SA_PASSWORD
+          value: SaPassw0rd!Change     # demo only - use podman secrets / your vault
+      resources:
+        requests:
+          cpu: 500m
+          memory: 2Gi                  # SQL Server needs >= 2GB
+        limits:
+          cpu: "2"
+          memory: 4Gi
+      volumeMounts:
+        - name: sqlserver-data
+          mountPath: /var/opt/mssql
+    # The image doesn't create application databases: this sidecar waits for the server, creates
+    # appdb + the appuser login once (idempotent), then idles. Liquibase creates the tables.
+    - name: sqlserver-init
+      image: mcr.microsoft.com/mssql/server:2022-latest
+      command: ["/bin/bash", "-c"]
+      args:
+        - |
+          for i in $(seq 1 60); do
+            /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -b -Q "
+              IF DB_ID(N'appdb') IS NULL CREATE DATABASE appdb;
+              IF SUSER_ID(N'appuser') IS NULL CREATE LOGIN appuser WITH PASSWORD = N'AppPassw0rd!';
+            " && /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -d appdb -b -Q "
+              IF USER_ID(N'appuser') IS NULL BEGIN CREATE USER appuser FOR LOGIN appuser; ALTER ROLE db_owner ADD MEMBER appuser; END
+            " && echo "appdb ready" && break
+            sleep 5
+          done
+          sleep infinity
+      env:
+        - name: MSSQL_SA_PASSWORD
+          value: SaPassw0rd!Change
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+        limits:
+          cpu: 200m
+          memory: 128Mi
+  volumes:
+    - name: sqlserver-data
+      persistentVolumeClaim:
+        claimName: sqlserver-data
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sqlserver-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: spring-app-pod
+  labels:
+    app: your_repo_name-backend
+spec:
+  containers:
+    - name: spring-app
+      image: your_repo_name-backend:latest
+      ports:
+        - containerPort: 8080
+          hostPort: 8080
+        - containerPort: 8081        # actuator: probes + /actuator/prometheus (scraped over app-net, not published)
+      env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: sqlserver,kerberos   # Waffle needs a Windows host - see README "Windows SSO"
+        - name: SPRING_DATASOURCE_URL
+          value: jdbc:sqlserver://sqlserver-pod:1433;databaseName=appdb;encrypt=true;trustServerCertificate=true
+        - name: SPRING_DATASOURCE_USERNAME
+          value: appuser
+        - name: SPRING_DATASOURCE_PASSWORD
+          value: AppPassw0rd!         # demo only - use podman secrets / your vault
+        - name: SPRINGDOC_ENABLE_DATA_REST
+          value: "false"
+        - name: APP_ENVIRONMENT
+          value: local
+        # Kerberos: SPN = host name the browser uses for the app (the frontend)
+        - name: KERBEROS_SERVICE_PRINCIPAL
+          value: HTTP/app.mydomain.com@MYDOMAIN.COM
+        - name: KERBEROS_KEYTAB
+          value: /etc/krb5/app.keytab
+        - name: JAVA_TOOL_OPTIONS
+          value: -Djava.security.krb5.conf=/etc/krb5/krb5.conf
+        - name: APP_WEBSOCKET_ALLOWEDORIGINPATTERNS_0
+          value: http://localhost:3000
+      volumeMounts:
+        - name: krb5
+          mountPath: /etc/krb5
+          readOnly: true
+      readinessProbe:
+        httpGet:
+          path: /actuator/health/readiness
+          port: 8081
+        initialDelaySeconds: 20
+        periodSeconds: 10
+      livenessProbe:
+        httpGet:
+          path: /actuator/health/liveness
+          port: 8081
+        initialDelaySeconds: 60
+        periodSeconds: 20
+      resources:
+        requests:
+          cpu: 500m
+          memory: 512Mi
+        limits:
+          cpu: "2"
+          memory: 1Gi
+  volumes:
+    # app.keytab + krb5.conf from your AD admin. Absolute host path - adjust.
+    - name: krb5
+      hostPath:
+        path: /opt/your_repo_name/krb5
+        type: Directory
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: frontend-pod
+  labels:
+    app: your_repo_name-frontend
+spec:
+  containers:
+    - name: frontend
+      image: your_repo_name-frontend:latest
+      ports:
+        - containerPort: 8080
+          hostPort: 3000
+      env:
+        # nginx proxies /api and /websockets here (pod name resolves on app-net)
+        - name: BACKEND_URL
+          value: http://spring-app-pod:8080
+      # Static files + reverse proxy: needs far less than the JVM
+      resources:
+        requests:
+          cpu: 50m
+          memory: 32Mi
+        limits:
+          cpu: 500m
+          memory: 128Mi
+    # Prometheus metrics for nginx, read from stub_status on :8081 inside this pod
+    - name: nginx-exporter
+      image: docker.io/nginx/nginx-prometheus-exporter:1.4
+      args:
+        - --nginx.scrape-uri=http://localhost:8081/stub_status
+      ports:
+        - containerPort: 9113
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          cpu: 100m
+          memory: 64Mi

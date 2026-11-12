@@ -30,3 +30,8 @@ node
 # Generated from ../openapi/openapi.yaml - regenerate with `npm run generate:api`
 src/generated/
 storybook-static
+
+# test output
+test-results/
+playwright-report/
+e2e/.auth/

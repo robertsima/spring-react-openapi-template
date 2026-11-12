@@ -1,9 +1,9 @@
 import {FC, ReactNode} from 'react';
-import {useAuth} from "react-oidc-context";
 import {doesUserHaveAnyOneOfTheseRoles} from "../../utils/auth/auth";
 import {UserRole} from "../../constants/roles";
 import {NavigateTo} from "../navigation/NavigateTo";
 import {ROUTE_UNAUTHORISED} from "../../constants/routes";
+import {useAuth} from "../../services/Authentication/AuthenticationProvider";
 
 export type ProtectedRouteProps = {
     children: ReactNode;
@@ -13,11 +13,11 @@ export type ProtectedRouteProps = {
 
 // Role-based route guard. UI-only convenience - the backend still enforces roles on every call.
 export const ProtectedRoute: FC<ProtectedRouteProps> = ({children, permittedRoles, unauthorisedRoute}) => {
-    const auth = useAuth();
-    const isAuthorised = doesUserHaveAnyOneOfTheseRoles(auth.user, permittedRoles);
+    const {user} = useAuth();
+    const isAuthorised = doesUserHaveAnyOneOfTheseRoles(user, permittedRoles);
 
     return <>
         {isAuthorised && children}
-        {auth.user && !isAuthorised && <NavigateTo to={unauthorisedRoute ?? ROUTE_UNAUTHORISED}/>}
+        {user && !isAuthorised && <NavigateTo to={unauthorisedRoute ?? ROUTE_UNAUTHORISED}/>}
     </>
 };

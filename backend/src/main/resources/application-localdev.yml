@@ -1,0 +1,8 @@
+# LOCAL DEVELOPMENT ONLY - fake Windows SSO (security/LocalDevSecurityConfig.java).
+# Every request is authenticated as this user; groups go through app.security.role-mappings.
+app:
+  security:
+    dev-user:
+      name: "MYDOMAIN\\devuser"
+      groups:
+        - "MYDOMAIN\\App-Admins"   # remove to test as a plain ROLE_USER

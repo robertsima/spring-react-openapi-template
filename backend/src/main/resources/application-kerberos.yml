@@ -1,0 +1,11 @@
+# Windows SSO via Spring Security Kerberos / SPNEGO (security/KerberosSecurityConfig.java). Runs on Linux.
+# The SPN must match the host name the browser uses for the app (the frontend), and the keytab must be
+# mounted into the container (see deploy/*.yaml).
+app:
+  security:
+    kerberos:
+      service-principal: ${KERBEROS_SERVICE_PRINCIPAL:HTTP/app.mydomain.com@MYDOMAIN.COM}
+      keytab-location: ${KERBEROS_KEYTAB:/etc/krb5/app.keytab}
+      debug: ${KERBEROS_DEBUG:false}
+# The JVM also needs the realm/KDC: mount a krb5.conf and set -Djava.security.krb5.conf=/etc/krb5/krb5.conf
+# (JAVA_TOOL_OPTIONS in deploy/*.yaml), or rely on DNS SRV lookup of the KDC.
