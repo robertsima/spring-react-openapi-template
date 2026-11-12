@@ -1,10 +1,6 @@
 # spring-react-openapi-template
 ## Spec-driven monorepo: one OpenAPI contract → Spring Boot backend + React frontend, Windows SSO, Oracle or SQL Server
 
-> **Branch `feature/windows-sso-oracle-sqlserver`.** This variant targets Windows/Active Directory shops.
-> Keycloak/JWT is replaced by Windows SSO (Waffle or Spring Security Kerberos), and Postgres by Oracle
-> or SQL Server. `main` has the Keycloak + Postgres variant.
-
 A template for contract-first development. The API lives in a single file, `openapi/openapi.yaml`, and both
 sides are generated from it:
 
@@ -12,8 +8,6 @@ sides are generated from it:
   Controllers implement the generated `*Api` interfaces and return the generated DTOs.
 * **frontend/**: a React + TypeScript (Vite) app adapted from [react-springboot-appengine-template](https://github.com/sparmboy/react-springboot-appengine-template).
   It calls the backend only through the generated `typescript-fetch` client.
-
-**New to contract-first, or not sure it's worth it?** Start with the [docs](docs/README.md).
 
 The frontend and backend are **separate deployables**. Each has its own image, its own pod and its own CPU/memory limits.
 
@@ -33,7 +27,7 @@ For security purposes, you should never store credentials inside this project - 
 - [x] Podman/kube yaml per database with per-service resource limits and health probes
 
 ## How to use
-1. Use this repo as a template (or clone / download the zip) and check out this branch.
+1. Use this repo as a template (or clone / download the zip).
 2. Rename the placeholders: `your_repo_name`, `com.example_project_name`, `MYDOMAIN`, `app.mydomain.com`.
 3. Edit `openapi/openapi.yaml`, regenerate, implement, and start developing!
 
