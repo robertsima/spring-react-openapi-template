@@ -33,26 +33,26 @@ build time, so if either side drifts from the contract, that side stops compilin
 | [01 - Why contract-first](01-why-contract-first.md) | why spec-first pays off in modernization, and where it doesn't | Pyramid, 5 Whys, SWOT |
 | [02 - How the template works](02-how-the-template-works.md) | what generates what, and how the two services fit together | Problem / Solutions / Next Steps |
 | [03 - Day-to-day workflow](03-workflow.md) | how to add or change an endpoint, and who signs off | Steps, RACI |
-| [04 - Choosing a variant](04-choosing-a-variant.md) | `main` (Keycloak + Postgres) or the Windows SSO branch (Oracle / SQL Server) | Decision table |
+| [04 - Setup and configuration](04-setup-and-configuration.md) | how to configure Keycloak, PostgreSQL and deployment | Steps, tables |
 | [05 - Rolling it out](05-adoption-plan.md) | how to introduce contract-first on a modernization program | GROW, OKR, SMART |
 
 ## Quick start
 
 1. Read [01](01-why-contract-first.md) if you need convincing, otherwise skip to step 2.
-2. Pick a variant with [04](04-choosing-a-variant.md) and check out that branch.
+2. Configure Keycloak and the database with [04](04-setup-and-configuration.md).
 3. Follow "Running locally" in the root [README](../README.md).
 4. Add your first endpoint by following [03](03-workflow.md).
-
-> The docs describe both variants. Where something only exists on one branch, the text says which.
 
 ## Changelog
 
 | Date       | Description                    |
 | ---------- | ------------------------------ |
 | 2026-11-12 | Initial docs set (index + 01-05) |
+| 2026-11-12 | Scoped to this template's stack (Keycloak + PostgreSQL); 04 replaced with setup guide |
 
 ## Revision History
 
 | Version | Date       | Description              |
 | ------- | ---------- | ------------------------ |
 | 1.0     | 2026-11-12 | First version of the docs index |
+| 1.1     | 2026-11-12 | Scoped to this template's stack only |

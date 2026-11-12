@@ -64,8 +64,8 @@ Run a pilot on one slice, measure it against the current baseline, then decide.
 1. **Pick the slice.** Choose one with a real consumer and a real provider, not a toy. Two teams minimum.
 2. **Record the baseline.** Count recent interface-mismatch defects and waiting time on a comparable slice.
 3. **Name the API owner** and agree the RACI in [03 - Day-to-day workflow](03-workflow.md).
-4. **Set up from the template.** Choose the variant with [04](04-choosing-a-variant.md) and rename the
-   placeholders.
+4. **Set up from the template.** Configure Keycloak and the database with
+   [04](04-setup-and-configuration.md).
 5. **Write the first contract together.** Run a one-hour session where both teams write the first
    endpoints in `openapi/openapi.yaml`. This is where most of the value shows up.
 6. **Build in parallel.** The frontend works against generated types and mocks. The backend implements
@@ -101,9 +101,11 @@ Run a pilot on one slice, measure it against the current baseline, then decide.
 | Date       | Description     |
 | ---------- | --------------- |
 | 2026-11-12 | Initial version |
+| 2026-11-12 | Setup step points to the setup guide |
 
 ## Revision History
 
 | Version | Date       | Description     |
 | ------- | ---------- | --------------- |
 | 1.0     | 2026-11-12 | Initial version |
+| 1.1     | 2026-11-12 | Link update |

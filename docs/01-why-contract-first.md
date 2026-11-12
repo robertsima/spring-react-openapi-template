@@ -57,8 +57,8 @@ Contract-first fixes the cause, not just this one symptom.
 
 ### 1. Teams stop waiting on each other
 
-When the contract is merged, the frontend generates its client and can build against a mock (this
-template's frontend integration tests do that with MSW). The backend generates its interfaces and
+When the contract is merged, the frontend generates its client and can build against a mock server or
+mocked responses typed with the generated models. The backend generates its interfaces and
 implements them. Neither side needs the other's code to make progress.
 
 ### 2. Drift becomes a compile error
@@ -159,9 +159,11 @@ Even then, this template still works. You just edit the spec and the controller 
 | Date       | Description          |
 | ---------- | -------------------- |
 | 2026-11-12 | Initial version      |
+| 2026-11-12 | Removed reference to frontend tests that aren't part of this template |
 
 ## Revision History
 
 | Version | Date       | Description     |
 | ------- | ---------- | --------------- |
 | 1.0     | 2026-11-12 | Initial version |
+| 1.1     | 2026-11-12 | Mock example made tool-neutral |

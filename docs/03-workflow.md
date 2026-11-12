@@ -52,11 +52,9 @@ The example adds `GET /users/{id}`.
 
 6. **Use it in the UI** through `useAppContext().apis.usersApi`.
 
-7. **Test both sides.**
-   - Backend unit test for the service, and an integration test (`*IT`, extends the DB base class) for the
-     endpoint.
-   - On the Windows SSO branch, add a frontend integration test with an MSW handler typed with the
-     generated model, which proves the UI handles the contract's responses.
+7. **Test it.** Add a backend unit test for the service (`src/test/java/unit`, run by `./mvnw test`) and an
+   integration test for the endpoint (`*IT` extending `PostgresBaseIT`, run by `./mvnw verify`).
+   Authenticate in tests with `@WithMockUser(roles = ...)`.
 
 8. **Run the full build** (`./mvnw verify`, `npm run build`). Any place still using the old shape fails to
    compile.
@@ -110,9 +108,11 @@ the change before you merge it.
 | Date       | Description     |
 | ---------- | --------------- |
 | 2026-11-12 | Initial version |
+| 2026-11-12 | Testing step matches this template's test setup |
 
 ## Revision History
 
 | Version | Date       | Description     |
 | ------- | ---------- | --------------- |
 | 1.0     | 2026-11-12 | Initial version |
+| 1.1     | 2026-11-12 | Testing step updated |

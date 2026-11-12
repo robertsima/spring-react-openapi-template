@@ -103,17 +103,12 @@ The generator version must match in three places, or the two sides may generate 
 | `frontend/openapitools.json` | `generator-cli.version` |
 | `frontend/Dockerfile` | `openapitools/openapi-generator-cli` image tag |
 
-## What differs between variants
+## Security and data in one paragraph
 
-The generation pipeline is identical on both branches. Security, the database and some extras differ.
-See [04 - Choosing a variant](04-choosing-a-variant.md).
-
-| Concern | `main` | `feature/windows-sso-oracle-sqlserver` |
-| ------- | ------ | -------------------------------------- |
-| Auth | Keycloak OIDC in the UI, JWT resource server in the backend | Windows SSO (Waffle or Kerberos), `GET /me` in the contract |
-| Database | PostgreSQL | Oracle or SQL Server by profile |
-| Tests | backend unit + integration | backend and frontend unit + integration, Playwright e2e |
-| Ops | - | Prometheus metrics, ECS JSON logs |
+The browser logs in with Keycloak and sends a bearer token. The backend validates it as a stateless JWT
+resource server and maps Keycloak realm roles to `ROLE_*`. Data lives in PostgreSQL, with the schema
+managed by Liquibase. None of this touches the generation pipeline. See
+[04 - Setup and configuration](04-setup-and-configuration.md).
 
 ## Next Steps
 
@@ -125,9 +120,11 @@ See [04 - Choosing a variant](04-choosing-a-variant.md).
 | Date       | Description     |
 | ---------- | --------------- |
 | 2026-11-12 | Initial version |
+| 2026-11-12 | Removed cross-branch comparison |
 
 ## Revision History
 
 | Version | Date       | Description     |
 | ------- | ---------- | --------------- |
 | 1.0     | 2026-11-12 | Initial version |
+| 1.1     | 2026-11-12 | Scoped to this template's stack |
