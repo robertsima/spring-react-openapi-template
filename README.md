@@ -11,6 +11,8 @@ sides are generated from it:
 
 Change the contract, regenerate, and the compiler on each side shows you what no longer matches.
 
+**New to contract-first, or not sure it's worth it?** Start with the [docs](docs/README.md).
+
 The frontend and backend are **separate deployables**. Each has its own image, its own pod and its own CPU/memory limits, so you can scale and size them independently.
 
 For security purposes, you should never store credentials inside this project - only as an environment variable or key in some other place.
