@@ -1,0 +1,8 @@
+{
+  "apiBasePath": "/api",
+  "websocketPath": "/websockets",
+  "oidc": {
+    "authority": "http://localhost:8180/realms/your-realm",
+    "clientId": "your_repo_name-frontend"
+  }
+}

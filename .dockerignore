@@ -1,0 +1,8 @@
+# Both images build with the repo root as context (they need openapi/)
+.git
+.vscode
+**/node_modules
+**/target
+frontend/dist
+frontend/src/generated
+frontend/storybook-static

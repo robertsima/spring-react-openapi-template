@@ -1,0 +1,48 @@
+# Rendered at container start by the nginx image's envsubst step (/etc/nginx/templates -> /etc/nginx/conf.d).
+# Only variables set in the environment are substituted, so nginx's own $vars are left alone.
+#   BACKEND_URL     where the backend service is reachable from this container, e.g. http://spring-app-pod:8080
+#   OIDC_AUTHORITY  Keycloak realm URL as the *browser* sees it
+#   OIDC_CLIENT_ID  public Keycloak client for this UI
+
+server {
+    listen 8080;
+    server_name _;
+    root /usr/share/nginx/html;
+
+    # Runtime config for the SPA (see src/config.ts)
+    location = /config.json {
+        default_type application/json;
+        add_header Cache-Control "no-store";
+        return 200 '{"apiBasePath":"/api","websocketPath":"/websockets","oidc":{"authority":"${OIDC_AUTHORITY}","clientId":"${OIDC_CLIENT_ID}"}}';
+    }
+
+    # REST API -> backend (the trailing slash strips the /api prefix)
+    location /api/ {
+        proxy_pass ${BACKEND_URL}/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # STOMP / SockJS -> backend, with WebSocket upgrade
+    location /websockets {
+        proxy_pass ${BACKEND_URL};
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_read_timeout 1h;
+    }
+
+    # Long-cache fingerprinted assets, never cache index.html
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        try_files $uri =404;
+    }
+
+    # SPA fallback for client-side routes
+    location / {
+        add_header Cache-Control "no-cache";
+        try_files $uri /index.html;
+    }
+}

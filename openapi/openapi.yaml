@@ -1,0 +1,83 @@
+# Single source of truth for the API contract.
+#   - backend/  generates Spring interfaces + models from this file (openapi-generator-maven-plugin, generator "spring")
+#   - frontend/ generates a TypeScript fetch client + models from this file (openapi-generator-cli, generator "typescript-fetch")
+# Change the contract here first, then regenerate both sides.
+
+openapi: 3.0.3
+
+info:
+  title: User Service API
+  version: 1.0.0
+
+tags:
+  - name: Users
+    description: User operations
+
+security:
+  - bearerAuth: []
+
+paths:
+  /users:
+    get:
+      tags:
+        - Users
+      operationId: getUsersByName
+      summary: Get users by name
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "200":
+          description: Users matching the name
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserDTO"
+        "400":
+          description: Invalid name supplied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing or invalid bearer token
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    UserDTO:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        status:
+          type: integer
+
+    # Payload broadcast over STOMP on /topic/my_events.
+    # Not referenced by any path, but kept in the contract so both sides share the type.
+    WebSocketEvent:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: boolean
