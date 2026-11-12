@@ -13,6 +13,8 @@ sides are generated from it:
 * **frontend/**: a React + TypeScript (Vite) app adapted from [react-springboot-appengine-template](https://github.com/sparmboy/react-springboot-appengine-template).
   It calls the backend only through the generated `typescript-fetch` client.
 
+**New to contract-first, or not sure it's worth it?** Start with the [docs](docs/README.md).
+
 The frontend and backend are **separate deployables**. Each has its own image, its own pod and its own CPU/memory limits.
 
 For security purposes, you should never store credentials inside this project - only as an environment variable or key in some other place.
